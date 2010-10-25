@@ -1,0 +1,92 @@
+#!/bin/bash
+
+# Make sure to specify the build to grab. I know I could just grab current
+# but honestly, do some work yourself!
+release=$1
+fragged=0
+IMAGENAME=Angstrom-bug-image-production-glibc-ipk-2009.X-stable-bug20.rootfs.tar
+INCRURL=http://dauber/buildbot/trunk/incremental/
+FULLURL=http://dauber/buildbot/trunk/full/
+#ACCTURL=http://bugcommunity.com/downloads/accenture/
+ACCTURL=http://dauber/buildbot/accenture/full/
+
+if [ "$1" == "--help" ]; then
+	echo "$0 [Build Number] [full|incr|acct]"
+	echo "$0 with no arguments will tell you the latest build number for each tree"
+	echo -e "\tfull will pull from the full builds"
+	echo -e "\tincr will pull from the incremental builds"
+	echo -e "\tacct will pull from the Accenture specific builds"
+	echo
+	echo "You need superuser privs to run this, sudo please"
+
+fi
+if [[ $EUID -ne 0 ]] && [[ $# -ne 0 ]]; then
+	echo "You need superuser privs to do anything constructive, sudo please"
+	exit 1
+fi
+
+if [ "$2" == "full" ]; then
+	BASEURL=$FULLURL
+elif [ "$2" == "acct" ]; then
+	BASEURL=$ACCTURL
+elif [ "$2" == "incr" ]; then
+	BASEURL=$INCRURL
+else
+	BASEURL=$FULLURL
+fi
+
+if [ -z $release ]; then
+	echo please specify the svn build \# of the rc ya want
+	echo the current releases are:
+	for URL in $INCRURL $FULLURL $ACCTURL; do
+		echo $URL :
+		wget -q -O - $URL/current/svninfo | grep Revision
+	done
+	exit
+fi
+
+if [ $? -ne 0 ]; then
+	echo Seriously, do you hate me that much? I can not get there from here.
+	echo Go over and see what you screwed up in ~/testing/$1
+	exit
+fi
+# grab the whole shooting match off dauber
+wget -r -nd -np $BASEURL${release}/${IMAGENAME}.gz
+wget -r -nd -np $BASEURL${release}/${IMAGENAME}.gz.md5
+
+# quick and dirty way to see if we got a good pull
+if [ ! -f ${IMAGENAME}.gz ]; then
+	echo You are pissing me off. Did you even give me a valid release number?
+	echo Current is $(wget -q -O - $BASEURLcurrent/svninfo | grep Revision)
+	echo kthxbai
+	exit
+fi
+
+#clean up paths in md5 files
+  sed -i 's/ [\.|\/].*\/\(.*\)/ \1/' ${IMAGENAME}.gz.md5
+
+	md5sum -c ${IMAGENAME}.gz.md5
+	if [ $? -ne 0 ]; then 
+		echo '******************************************************** '
+		echo MD5 sum of file ${la/.md5/} did not match
+		echo I am not your mother, clean it up yourself
+		echo wget $BASEURL$1/${la/.md5/}
+		echo '******************************************************** '
+		fragged=1
+	fi
+
+if [ $fragged -ne 1 ]; then
+	gunzip ${IMAGENAME}.gz
+	mv ${IMAGENAME} $1.rootfs.tar
+	TMPDIR=$(mktemp -d)
+	cd $TMPDIR
+	tar xf ${OLDPWD}/$1.rootfs.tar
+	find -type f -exec md5sum {} \; > ${OLDPWD}/$1.rootfs.tar.list.md5
+	cd ${OLDPWD}
+	rm -rf $TMPDIR
+	rm -f ${IMAGENAME}.gz.md5
+	md5sum $1.rootfs.tar > $1.rootfs.tar.md5
+else
+	echo didn\'t get the rootfs down clean, solly!
+	pwd
+fi
