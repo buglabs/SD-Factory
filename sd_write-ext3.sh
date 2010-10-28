@@ -16,7 +16,7 @@ p
 a
 1
 w
-" | fdisk $DEVNAME &> /dev/null
+" | fdisk $DEVNAME > /dev/null
 /bin/umount $DEVNAME\1
 sleep 2
 echo "Writing BUG image $2 to $DEVNAME"
@@ -50,7 +50,7 @@ FILE_LIST=$(tempfile -d $PREVDIR)
 find . -type f | xargs file | sort > $FILE_LIST
 cd $PREVDIR
 /bin/umount $DEVNAME\1
-diff -bE master_file_list.txt $FILE_LIST &> /dev/null
+diff -bE master_file_list.txt $FILE_LIST > /dev/null
 if [ "$?" -ne "0" ] ; then
   ./errorlognotify.sh $DEVSNAME "The file image on $DEVNAME is not consistent with master image. Check the file $FILE_LIST for details. Aborting."
   exit -1

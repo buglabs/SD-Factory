@@ -14,7 +14,7 @@ if [ ! $2 ]; then
 fi
 
 echo md5sum -c ${1}.md5 
-md5sum -c ${1}.md5 &> /dev/null
+md5sum -c ${1}.md5 > /dev/null 2>&1
 if [ "$?" -eq "0" ]; then
         echo "image check success"
 else
@@ -23,7 +23,7 @@ else
 fi
 IMAGE=$1
 LABEL=$2
-rm sd*.log &> /dev/null
+rm sd*.log > /dev/null 2>&1l
 while [ 1 ]; do
   # DISK_COUNT=`fdisk -l | grep ^/dev/sd | wc | sed 's/ *//' | sed 's/ .*$//'`
   DISK_COUNT=$(grep 1931264 /proc/partitions | wc -l)

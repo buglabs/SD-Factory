@@ -2,13 +2,36 @@
 
 #set -x 
 
+
+if [ "$1" == "--help" ] || [[ $# -lt 3 ]]; then
+	echo "$0 devname rootfs.tar volume-label"
+	echo "But that is just the beginning, you also need"
+	echo "a rootfs.tar.list.md5 which is a md5sum of every file in"
+	echo "the tarball, so we can verify the filesystem is created correctly"
+	exit 1
+elif [[ $EUID -ne 0 ]]; then
+	echo "You need superuser privs to do anything constructive, sudo please"
+	exit 1
+fi
+
+if [ ! -b $1 ]; then
+	echo "The first argument has to be the block device we're writing to"
+	exit
+fi
+
+if [ ! -e $2 ]; then
+	echo "The second argument is the uncompressed tarball you want to load on the sd card"
+	exit
+fi
+
+
 DEVNAME=$1
 DEVSNAME=${1/\/dev\//}
 sleep 5
-/bin/umount ${DEVNAME}* > /dev/null
+/bin/umount ${DEVNAME}* > /dev/null 2>&1
 dd if=/dev/zero of=$DEVNAME bs=1024 count=1024
 if [ $? != "0" ];then
-	echo "Partition table wipe (dd) failed"
+	echo "Partition table wipe \(dd\) failed"
 	./errorlognotify.sh $DEVSNAME "partition wipe on $DEVNAME failed.  Aborting."
 	exit -1
 	fi
@@ -22,11 +45,11 @@ p
 a
 1
 w
-" | fdisk $DEVNAME &> /dev/null
+" | fdisk $DEVNAME > /dev/null 2>&1
 /bin/umount $DEVNAME\1
 sleep 5
 echo "Formatting $DEVNAME"
-/sbin/mkfs.ext3 $DEVNAME\1 &> /dev/null
+/sbin/mkfs.ext3 $DEVNAME\1 > /dev/null 2>&1
 if [ "$?" -ne "0" ] ; then
   ./errorlognotify.sh $DEVSNAME "mkfs.ext3 on $DEVNAME freaking failed.  Aborting."
   exit -1
