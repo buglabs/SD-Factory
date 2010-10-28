@@ -96,7 +96,7 @@ if [ ! -d /mnt/verify-$DEVSNAME ]; then mkdir -p /mnt/verify-$DEVSNAME; fi
 /bin/mount -r $DEVNAME\1 /mnt/verify-$DEVSNAME
 PREVDIR=$(pwd)
 cd /mnt/verify-$DEVSNAME
-md5sum --quiet -c $PREVDIR/${2}.list.md5
+md5sum --status -c $PREVDIR/${2}.list.md5
 if [ "$?" -ne "0" ] ; then
   ./errorlognotify.sh $DEVSNAME "The file image on $DEVNAME is not consistent with master image."
   cd $PREVDIR
