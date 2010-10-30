@@ -1,0 +1,49 @@
+SD-Factory
+==========
+
+Build one, or build many root filesystem SD cards for your Bug.
+
+Prepimage
+---------
+The first thing you do is run the prepimage command. prepimage with no args
+will look at the Bug internal and external build stores and tell you what the
+latest Subversion revision is included. Then prepimage will either be run in
+buildbot mode for external downloads, or you specify which revision to pull and
+which build tree to pull it from (incremental, full or accenture).
+
+You have to run prepimage with root privledges. Sudo works fine. The reason is
+the tarball is expanded to get the md5sum of every file for later verification
+and when it is untarred, you have to be root for everything to get written
+properly
+
+prepimage [Build Number] [full|incr|acct]
+prepimage with no arguments will tell you the latest build number for each tree
+	full will pull from the full builds
+	incr will pull from the incremental builds
+	acct will pull from the Accenture specific builds
+prepimage --bbot
+	will pull the latest from the external site
+
+# Examples
+sudo ./prepimage 12280
+sudo ./prepimage 12280 incr
+sudo ./prepimage --bbot
+
+sd_write.sh
+-----------
+sd_write.sh is the writing engine of SD-Factory. This script takes the target
+device, the name of the file downloaded by prepimage ([revision #].rootfs.tar)
+and a volume label prefix.
+
+sudo ./sd_write.sh /dev/sdb 12106.rootfs.tar FULL12106
+
+if sd_write encounters any issues, errorlognotify.sh will be called
+
+I'm tired, so I'm stopping here for now. #buglabs on freenode for problems
+
+Coming Soon
+
+sd_factory.sh
+sd_write-ext3.sh
+errorlognotify.sh
+irc_message.sh
