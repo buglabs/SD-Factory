@@ -23,7 +23,7 @@ else
 fi
 IMAGE=$1
 LABEL=$2
-rm sd*.log > /dev/null 2>&1l
+rm sd*.log > /dev/null 2>&1
 while [ 1 ]; do
   # DISK_COUNT=`fdisk -l | grep ^/dev/sd | wc | sed 's/ *//' | sed 's/ .*$//'`
   DISK_COUNT=$(grep 1931264 /proc/partitions | wc -l)

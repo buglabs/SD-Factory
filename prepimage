@@ -7,6 +7,7 @@ fragged=0
 IMAGENAME=Angstrom-bug-image-production-glibc-ipk-2009.X-stable-bug20.rootfs.tar
 INCRURL=http://dauber/buildbot/trunk/incremental/
 FULLURL=http://dauber/buildbot/trunk/full/
+REPOURL=http://dauber/buildbot/repo/full/
 #ACCTURL=http://bugcommunity.com/downloads/accenture/
 ACCTURL=http://dauber/buildbot/accenture/full/
 EXT_URL=http://repo.buglabs.net/buildbot-images/2.0/
@@ -14,6 +15,7 @@ EXT_URL=http://repo.buglabs.net/buildbot-images/2.0/
 if [ "$1" == "--help" ]; then
 	echo "$0 [Build Number] [full|incr|acct]"
 	echo "$0 with no arguments will tell you the latest build number for each tree"
+	echo -e "\trc   will pull from the repo/full/RC builds"
 	echo -e "\tfull will pull from the full builds"
 	echo -e "\tincr will pull from the incremental builds"
 	echo -e "\tacct will pull from the Accenture specific builds"
@@ -30,6 +32,8 @@ fi
 if [ "$1" == "--bbot" ]; then
 	BASEURL=$EXT_URL
 	release=$(wget -q -O - $EXT_URL/svninfo | grep Revision | sed 's/Revision: //')
+elif [ "$2" == "rc" ]; then
+	BASEURL=$REPOURL
 elif [ "$2" == "full" ]; then
 	BASEURL=$FULLURL
 elif [ "$2" == "acct" ]; then
@@ -45,7 +49,7 @@ if [ -z $release ]; then
 	echo the current releases are:
 	echo $EXT_URL
 	wget -q -O - $EXT_URL/svninfo | grep Revision
-	for URL in $FULLURL $ACCTURL $INCRURL ; do
+	for URL in $REPOURL $FULLURL $ACCTURL $INCRURL ; do
 		echo $URL :
 		wget -q -O - $URL/current/svninfo | grep Revision
 	done
