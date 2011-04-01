@@ -1,0 +1,76 @@
+#!/bin/bash
+
+# Hi I'm you helpful code documentation. This will take the Bug rootfs from our internal server
+# dauber and prep it so it can be written to sd cards with the sd_write.sh utility. You can also
+# pass the name of a bzipped tarball you built locally or downloaded elsewhere. Make sure you have
+# an md5 sum file for it, or locusts will come and eat your lunch. 
+
+IMAGENAME=Angstrom-bug-image-production-glibc-ipk-2011.03-bug20.rootfs.tar.bz2
+BASEURL=http://dauber/buildbot/oe-release/full/current/
+
+if [[ $EUID -ne 0 ]];  then
+	echo "You need superuser privs to do anything constructive, sudo please"
+	exit 1
+fi
+
+# At last I have added the addition of passing in a tarball that you downloaded separately
+if [[ $# -ne 0 ]] && [ -e $1 ]; then
+	if [ ! -e ${1}.md5 ]; then
+		echo 'Hey Hey Hey! Did you not download the md5? You need to. Do it now.'
+		exit
+	fi
+	IMAGENAME=$1
+else
+	# grab the tarball 
+	wget -r -nd -np ${BASEURL}${IMAGENAME}
+	# quick and dirty way to see if we got a good pull
+	if [ ! -f ${IMAGENAME} ]; then
+		echo "You took the easy way and it didn't work. Nice"
+		echo "There is no hope for this option, the build is broke, the network is broke, something broke"
+		echo Try later, tomorrow, cry on IRC, I dunno. kthxbai
+		exit
+	fi
+	# and the md5 file
+	wget -r -nd -np ${BASEURL}${IMAGENAME}.md5
+	if [ $? -ne 0 ]; then
+		echo Seriously, nothing ever goes right, eh?
+		echo Go plug in your network cable and see if $release actually built
+		exit
+	fi
+fi
+
+#clean up paths in md5 files
+sed -i 's/ [\.|\/].*\/\(.*\)/ \1/' ${IMAGENAME}.md5
+
+md5sum -c ${IMAGENAME}.md5
+if [ $? -ne 0 ]; then
+	echo '******************************************************** '
+	echo MD5 sum of file ${IMAGENAME}did not match
+	echo I echo didn\'t get the rootfs down clean, check your net
+	echo check your teeth, maybe your shoe is untied, TRY AGAIN
+	echo '******************************************************** '
+	exit 1
+fi
+
+# In the future, error checking is whay you want to put in here
+if [  -e ${1}.md5 ]; then
+	bunzip2 -dc ${IMAGENAME} > release.rootfs.tar
+else
+	bunzip2 ${IMAGENAME}
+	mv ${IMAGENAME/.bz2/} release.rootfs.tar
+fi
+TMPDIR=$(mktemp -d)
+cd $TMPDIR
+tar xf ${OLDPWD}/release.rootfs.tar
+release=$(grep Version etc/buildinfo | sed 's/Version:    //')
+revision=$(grep Revision etc/buildinfo | sed 's/Revision:  //')
+echo find -type f -exec md5sum {} \; \> ${OLDPWD}/${release}.${revision}.rootfs.tar.list.md5
+find -type f -exec md5sum {} \; > ${OLDPWD}/${release}.${revision}.rootfs.tar.list.md5
+cd ${OLDPWD}
+mv release.rootfs.tar ${release}.${revision}.rootfs.tar
+rm -rf $TMPDIR
+#oh the painful roundabout spaghetti code logic, it burns me
+if [  ! -e ${1}.md5 ]; then
+	rm -f ${IMAGENAME}.md5
+fi
+md5sum $release.$revision.rootfs.tar > $release.$revision.rootfs.tar.md5
