@@ -5,8 +5,38 @@
 # pass the name of a bzipped tarball you built locally or downloaded elsewhere. Make sure you have
 # an md5 sum file for it, or locusts will come and eat your lunch. 
 
+# Ahhhh, smart user. Punish their resourceful nature
+if  [[ $# -ne 0 ]] && [ "$1" == --help ]; then
+
+		echo Welcome to the abusive help system.
+		echo Your cry for help is our excuse to punch you in the gut
+		echo
+		echo oeprep - a utility for lazy folk who would rather get shit done than read the directions
+		echo Use with no options to get the most current build and prep it for use '(get it? oeprep)'
+		echo Use by what\? you ask. Get off my network. Read the code or go home '(sd_write.sh)'
+		echo
+		echo Pass a file name to oeprep and it will take that file, check the md5sum \(yes you need to
+		echo download those pesky \.md5 files\), and then prepare it for use \(reread the previous abuse\)
+		echo If you pass it something that did\'t come out of the OE build system a kitten will die.
+		echo If you complain about that, two kittens will die. Keep it up, I have a lot of kittens and
+		echo a couple cases of die.
+		echo 
+		echo If you are a total n00b, you can use the --prod option. It will get the latest production
+		echo release and prep it for use \(don\'t start\). Don\'t use any other options with it or it
+		echo will take out a kitten just for good measure.
+		echo
+		echo That\'s it. If you have any complaints or problems... awesome.
+		echo
+		exit 666
+fi
+
 IMAGENAME=Angstrom-bug-image-production-glibc-ipk-2011.03-bug20.rootfs.tar.bz2
-BASEURL=http://dauber/buildbot/oe-release/full/current/
+# New and Improved BASEURL for v3.0 development
+BASEURL=http://dauber/oe/downloads/oe-buglabs-sw2.1-scratch/images/current/bug20/
+
+# Current Prod URL, this won't work with older versions of the release. 
+# So don't travel back in time and use this script.
+PRODURL=http://bugcommunity.com/downloads/files/2.0/Releases/current/
 
 if [[ $EUID -ne 0 ]];  then
 	echo "You need superuser privs to do anything constructive, sudo please"
@@ -17,9 +47,29 @@ fi
 if [[ $# -ne 0 ]] && [ -e $1 ]; then
 	if [ ! -e ${1}.md5 ]; then
 		echo 'Hey Hey Hey! Did you not download the md5? You need to. Do it now.'
+		echo 'it should be called ' ${1}.md5 
 		exit
 	fi
 	IMAGENAME=$1
+elif  [[ $# -ne 0 ]] && [ "$1" == --prod ]; then
+	# grab the production tarball 
+	wget -r -nd -np ${PRODURL}${IMAGENAME}
+	# quick and dirty way to see if we got a good pull
+	if [ ! -f ${IMAGENAME} ]; then
+		echo "Sigh. I mean big loud Izzy Sigh. Give up now."
+		echo "There is no hope for this option, the server crashed, the network is broke, something broke"
+		echo Try later, tomorrow, cry on IRC, I dunno. kthxbai
+		exit
+	fi
+	# and the md5 file
+	wget -r -nd -np ${PRODURL}${IMAGENAME}.md5
+	if [ $? -ne 0 ]; then
+		echo Seriously, nothing ever goes right, eh?
+		echo Shut down your workstation and consider a career change.
+		exit
+	fi
+
+
 else
 	# grab the tarball 
 	wget -r -nd -np ${BASEURL}${IMAGENAME}
@@ -62,6 +112,7 @@ fi
 TMPDIR=$(mktemp -d)
 cd $TMPDIR
 tar xf ${OLDPWD}/release.rootfs.tar
+cat etc/buildinfo
 release=$(grep Version etc/buildinfo | sed 's/Version:    //')
 revision=$(grep Revision etc/buildinfo | sed 's/Revision:  //')
 echo find -type f -exec md5sum {} \; \> ${OLDPWD}/${release}.${revision}.rootfs.tar.list.md5
