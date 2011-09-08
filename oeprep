@@ -3,7 +3,9 @@
 # Hi I'm you helpful code documentation. This will take the Bug rootfs from our internal server
 # dauber and prep it so it can be written to sd cards with the sd_write.sh utility. You can also
 # pass the name of a bzipped tarball you built locally or downloaded elsewhere. Make sure you have
-# an md5 sum file for it, or locusts will come and eat your lunch. 
+# an md5 sum file for it, or locusts will come and eat your lunch.
+
+# P.S. This file is shit. Complete kludgy shit. Depend on it only for failures and pain.
 
 # Ahhhh, smart user. Punish their resourceful nature
 if  [[ $# -ne 0 ]] && [ "$1" == --help ]; then
@@ -30,9 +32,12 @@ if  [[ $# -ne 0 ]] && [ "$1" == --help ]; then
 		exit 666
 fi
 
-IMAGENAME=Angstrom-bug-image-production-glibc-ipk-2011.03-bug20.rootfs.tar.bz2
+# Imma gonna throat punch jconnolly if he changes the imagenames or urls again
+PRODIMAGENAME=Angstrom-bug-image-production-glibc-ipk-2011.03-bug20.rootfs.tar.bz2
+IMAGENAME=bug-image-production-bug20-2.5.rootfs.tar.bz2
 # New and Improved BASEURL for v3.0 development
-BASEURL=http://dauber/oe/downloads/oe-buglabs-sw2.1-scratch/images/current/bug20/
+#BASEURL=http://dauber/oe/downloads/oe-buglabs-sw2.1-scratch/images/current/bug20/
+BASEURL=http://repo.buglabs.net/buildbot-images/2.0/
 
 # Current Prod URL, this won't work with older versions of the release. 
 # So don't travel back in time and use this script.
@@ -52,6 +57,9 @@ if [[ $# -ne 0 ]] && [ -e $1 ]; then
 	fi
 	IMAGENAME=$1
 elif  [[ $# -ne 0 ]] && [ "$1" == --prod ]; then
+	# Dammit, more fuckin kluges. This will change with 3.0 release.
+	# This is why this utility has such a lousy attitude
+	IMAGENAME=PRODIMAGENAME
 	# grab the production tarball 
 	wget -r -nd -np ${PRODURL}${IMAGENAME}
 	# quick and dirty way to see if we got a good pull
@@ -71,6 +79,21 @@ elif  [[ $# -ne 0 ]] && [ "$1" == --prod ]; then
 
 
 else
+	# Now we get the md5 sum file first, and check to see if we've downloaded this one already.
+	wget -r -nd -np ${BASEURL}${IMAGENAME}.md5
+	if [ $? -ne 0 ]; then
+		echo Seriously, nothing ever goes right, eh?
+		echo Go plug in your network cable and see if $release actually built
+		exit
+	fi
+	grep $(sed -e 's/\(.*\) .*$/\1/' ${IMAGENAME}.md5) latest.md5 
+	if [[ $? == 0 ]]; then
+		echo
+		echo Hey there big fella, this image matches the latest you have. If your latest is hosed
+		echo remove the link latest.md5 and do it over
+		rm -f ${IMAGENAME}.md5
+		exit 1
+	fi
 	# grab the tarball 
 	wget -r -nd -np ${BASEURL}${IMAGENAME}
 	# quick and dirty way to see if we got a good pull
@@ -81,12 +104,6 @@ else
 		exit
 	fi
 	# and the md5 file
-	wget -r -nd -np ${BASEURL}${IMAGENAME}.md5
-	if [ $? -ne 0 ]; then
-		echo Seriously, nothing ever goes right, eh?
-		echo Go plug in your network cable and see if $release actually built
-		exit
-	fi
 fi
 
 #clean up paths in md5 files
@@ -121,7 +138,12 @@ cd ${OLDPWD}
 mv release.rootfs.tar ${release}.${revision}.rootfs.tar
 rm -rf $TMPDIR
 #oh the painful roundabout spaghetti code logic, it burns me
+# Shit, the logic is so bad I had to reread this 5 times before I remembered
+# $1.md5 will exist if we passed a file to oeprep, otherwise we should dump the file.
+# but not really, so now we'll save the damn thing. Ugh.
 if [  ! -e ${1}.md5 ]; then
-	rm -f ${IMAGENAME}.md5
+	# Ha! Now I make it worse:
+	mv ${IMAGENAME}.md5  ${release}.${revision}.rootfs.tar.bz2.md5
+	ln -sf ${release}.${revision}.rootfs.tar.bz2.md5 latest.md5
 fi
 md5sum $release.$revision.rootfs.tar > $release.$revision.rootfs.tar.md5
