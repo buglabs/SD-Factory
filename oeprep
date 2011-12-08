@@ -22,7 +22,7 @@ if  [[ $# -ne 0 ]] && [ "$1" == --help ]; then
 		echo If you pass it something that did\'t come out of the OE build system a kitten will die.
 		echo If you complain about that, two kittens will die. Keep it up, I have a lot of kittens and
 		echo a couple cases of die.
-		echo 
+		echo
 		echo If you are a total n00b, you can use the --prod option. It will get the latest production
 		echo release and prep it for use \(don\'t start\). Don\'t use any other options with it or it
 		echo will take out a kitten just for good measure.
@@ -36,10 +36,10 @@ fi
 PRODIMAGENAME=Angstrom-bug-image-production-glibc-ipk-2011.03-bug20.rootfs.tar.bz2
 IMAGENAME=bug-image-production-bug20-2.5.rootfs.tar.bz2
 # New and Improved BASEURL for v3.0 development
-#BASEURL=http://dauber/oe/downloads/oe-buglabs-sw2.1-scratch/images/current/bug20/
+INTRURL=http://dauber/oe/downloads/oe-buglabs-sw2.1-scratch/images/current/bug20/
 BASEURL=http://repo.buglabs.net/buildbot-images/2.0/
 
-# Current Prod URL, this won't work with older versions of the release. 
+# Current Prod URL, this won't work with older versions of the release.
 # So don't travel back in time and use this script.
 PRODURL=http://bugcommunity.com/downloads/files/2.0/Releases/current/
 
@@ -52,15 +52,15 @@ fi
 if [[ $# -ne 0 ]] && [ -e $1 ]; then
 	if [ ! -e ${1}.md5 ]; then
 		echo 'Hey Hey Hey! Did you not download the md5? You need to. Do it now.'
-		echo 'it should be called ' ${1}.md5 
+		echo 'it should be called ' ${1}.md5
 		exit
 	fi
 	IMAGENAME=$1
 elif  [[ $# -ne 0 ]] && [ "$1" == --prod ]; then
 	# Dammit, more fuckin kluges. This will change with 3.0 release.
 	# This is why this utility has such a lousy attitude
-	IMAGENAME=PRODIMAGENAME
-	# grab the production tarball 
+	IMAGENAME=$PRODIMAGENAME
+	# grab the production tarball
 	wget -r -nd -np ${PRODURL}${IMAGENAME}
 	# quick and dirty way to see if we got a good pull
 	if [ ! -f ${IMAGENAME} ]; then
@@ -79,6 +79,14 @@ elif  [[ $# -ne 0 ]] && [ "$1" == --prod ]; then
 
 
 else
+	# Freaking corner cases. This app was well laid out when I started. Now arg handlers are all over
+	# the fucking place. Spaghetti logic. Stup damn shit. I'm going to have to rewrite from scratch
+	# AGAIN! Anyway, this checks and sees if you want to download from today's internal url. Until
+	# some jackass changes it again at least.
+	if [[ $# -ne 0 ]] && [ "$1" == -i ]; then
+		BASEURL=$INTRURL
+	fi
+
 	# Now we get the md5 sum file first, and check to see if we've downloaded this one already.
 	wget -r -nd -np ${BASEURL}${IMAGENAME}.md5
 	if [ $? -ne 0 ]; then
@@ -86,7 +94,7 @@ else
 		echo Go plug in your network cable and see if $release actually built
 		exit
 	fi
-	grep $(sed -e 's/\(.*\) .*$/\1/' ${IMAGENAME}.md5) latest.md5 
+	grep $(sed -e 's/\(.*\) .*$/\1/' ${IMAGENAME}.md5) latest.md5
 	if [[ $? == 0 ]]; then
 		echo
 		echo Hey there big fella, this image matches the latest you have. If your latest is hosed
@@ -94,7 +102,7 @@ else
 		rm -f ${IMAGENAME}.md5
 		exit 1
 	fi
-	# grab the tarball 
+	# grab the tarball
 	wget -r -nd -np ${BASEURL}${IMAGENAME}
 	# quick and dirty way to see if we got a good pull
 	if [ ! -f ${IMAGENAME} ]; then
